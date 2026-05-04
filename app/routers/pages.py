@@ -9,8 +9,7 @@ router = APIRouter(tags=["pages"])
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request, current_user: dict = Depends(get_optional_user)):
     """主页面"""
-    return templates.TemplateResponse("index.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "index.html", {
         "user": current_user,
         "messages": get_flashed_messages(request)
     })
@@ -19,8 +18,7 @@ async def index(request: Request, current_user: dict = Depends(get_optional_user
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """登录页面"""
-    return templates.TemplateResponse("login.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "login.html", {
         "messages": get_flashed_messages(request)
     })
 
@@ -28,8 +26,7 @@ async def login_page(request: Request):
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request, current_user: dict = Depends(get_optional_user)):
     """管理页面"""
-    return templates.TemplateResponse("admin.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "admin.html", {
         "user": current_user,
         "messages": get_flashed_messages(request)
     })
