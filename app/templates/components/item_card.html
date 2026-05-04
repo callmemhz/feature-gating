@@ -41,18 +41,68 @@
     </div>
     
     <!-- 配置值 -->
-    <div x-init="if (item.value === undefined) item.value = ''">
-        <label class="block text-xs font-medium text-gray-700 mb-1">
-            配置值 <span class="text-gray-400 font-normal">(可选)</span>
-        </label>
-        <input 
-            type="text" 
+    <div x-init="if (item.value === undefined) item.value = ''" x-data="{
+        looksLikeJson(v) {
+            if (typeof v !== 'string') return false;
+            const t = v.trim();
+            return (t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'));
+        },
+        isValidJson(v) {
+            try { JSON.parse(v); return true; } catch (e) { return false; }
+        },
+        formatJson() {
+            try {
+                item.value = JSON.stringify(JSON.parse(item.value), null, 2);
+                hasUnsavedChanges = true;
+            } catch (e) {
+                alert('无法格式化：不是合法的 JSON');
+            }
+        },
+        minifyJson() {
+            try {
+                item.value = JSON.stringify(JSON.parse(item.value));
+                hasUnsavedChanges = true;
+            } catch (e) {
+                alert('无法压缩：不是合法的 JSON');
+            }
+        },
+        autoSize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 360) + 'px';
+        }
+    }">
+        <div class="flex flex-wrap items-center justify-between gap-y-1 mb-1">
+            <label class="text-xs font-medium text-gray-700">
+                配置值 <span class="text-gray-400 font-normal">(可选)</span>
+            </label>
+            <div class="flex items-center gap-x-3">
+                <template x-if="item.value && looksLikeJson(item.value)">
+                    <span class="text-xs"
+                        :class="isValidJson(item.value) ? 'text-emerald-600' : 'text-red-500'"
+                        x-text="isValidJson(item.value) ? '✓ JSON' : '✗ JSON 无效'"></span>
+                </template>
+                <button
+                    type="button"
+                    @click="formatJson()"
+                    class="text-xs text-blue-600 hover:text-blue-700 py-0.5"
+                    title="将 JSON 格式化为多行缩进">格式化</button>
+                <button
+                    type="button"
+                    @click="minifyJson()"
+                    class="text-xs text-gray-500 hover:text-gray-700 py-0.5"
+                    title="将 JSON 压缩为单行">压缩</button>
+            </div>
+        </div>
+        <textarea
             x-model="item.value"
-            @input="hasUnsavedChanges = true"
-            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="如: 100 或 {&quot;limit&quot;: 5}"
-        >
-        <p class="text-xs text-gray-400 mt-1">通过 /api/fg/get 获取，支持任意字符串格式</p>
+            x-init="$nextTick(() => autoSize($el))"
+            @input="hasUnsavedChanges = true; autoSize($event.target)"
+            rows="2"
+            spellcheck="false"
+            class="w-full px-2 py-1 text-sm border border-gray-300 rounded font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+            placeholder='如: 100 或 {"limit": 5}'
+        ></textarea>
+        <p class="text-xs text-gray-400 mt-1">通过 /api/fg/get 获取，支持任意字符串格式（多行 JSON 可点"格式化"）</p>
     </div>
     
     <!-- Enable/Disable 开关 -->
