@@ -35,17 +35,34 @@
     ></div>
     
     <!-- 左侧导航栏 -->
-    <div 
-        class="fixed md:relative inset-y-0 left-0 w-64 bg-gray-800 text-white flex flex-col z-50 transform transition-transform duration-200 md:!translate-x-0"
-        :class="{'translate-x-0': showLeftSidebar, '-translate-x-full': !showLeftSidebar}"
+    <div
+        class="fixed md:relative inset-y-0 left-0 w-64 bg-gray-800 text-white flex flex-col z-50 transform transition-all duration-200 md:!translate-x-0 overflow-hidden"
+        :class="{
+            'translate-x-0': showLeftSidebar,
+            '-translate-x-full': !showLeftSidebar,
+            'md:w-0 md:!p-0': leftSidebarCollapsed
+        }"
     >
         <div class="p-4 border-b border-gray-700 flex items-center justify-between">
-            <h1 class="text-xl font-bold">{{ app_title }}</h1>
-            <button @click="showLeftSidebar = false" class="md:hidden text-gray-400 hover:text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
+            <h1 class="text-xl font-bold whitespace-nowrap">{{ app_title }}</h1>
+            <div class="flex items-center gap-2">
+                <!-- 桌面端：折叠侧栏 -->
+                <button
+                    @click="leftSidebarCollapsed = true"
+                    class="hidden md:block text-gray-400 hover:text-white"
+                    title="折叠侧栏"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <!-- 移动端：关闭抽屉 -->
+                <button @click="showLeftSidebar = false" class="md:hidden text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
         
         <!-- Projects 列表 -->
@@ -107,11 +124,24 @@
         <!-- 桌面端标题栏 -->
         <div class="hidden md:block bg-white border-b border-gray-200 p-4">
             <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-bold" x-text="currentProject ? currentProject.name : '选择一个项目'"></h2>
-                <button 
-                    x-show="currentProject" 
+                <div class="flex items-center gap-3 min-w-0">
+                    <!-- 侧栏折叠时显示展开按钮 -->
+                    <button
+                        x-show="leftSidebarCollapsed"
+                        @click="leftSidebarCollapsed = false"
+                        class="text-gray-500 hover:text-gray-800 flex-shrink-0"
+                        title="展开侧栏"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                    <h2 class="text-2xl font-bold truncate" x-text="currentProject ? currentProject.name : '选择一个项目'"></h2>
+                </div>
+                <button
+                    x-show="currentProject"
                     @click="addNewItem()"
-                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0"
                 >
                     + 新增 Item
                 </button>
@@ -187,24 +217,100 @@
                 </div>
             </template>
             
-            <!-- 响应式 Grid: 移动端单列，桌面端自动填充 -->
-            <div class="grid gap-4 pb-8" style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));">
+            <!-- 列表头工具栏 -->
+            <div x-show="currentProject && items.length > 0" class="flex items-center justify-between mb-3 text-xs text-gray-500">
+                <div>
+                    共 <span class="font-medium text-gray-700" x-text="items.length"></span> 项
+                    <template x-if="modifiedCount() > 0">
+                        <span class="ml-2 text-amber-600">· <span x-text="modifiedCount()"></span> 项未保存</span>
+                    </template>
+                </div>
+            </div>
+
+            <!-- 自适应多列摘要卡片：点击打开右侧编辑抽屉 -->
+            <div class="grid gap-3 pb-8" style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));">
                 <template x-for="(item, index) in items" :key="index">
-                    <div 
-                        class="shadow-sm border border-gray-200 relative rounded-lg"
+                    <div
+                        @click="openEditor(index)"
+                        class="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden flex flex-col min-w-0 cursor-pointer hover:shadow-md hover:border-blue-300 transition"
                         :class="{
-                            'opacity-40': isItemHit(item.name) === false
+                            'opacity-50': isItemHit(item.name) === false,
+                            'border-l-4 border-l-amber-400': isItemModified(index) || isItemNew(index),
+                            'ring-2 ring-emerald-400': isItemHit(item.name) === true
                         }"
-                        :style="isItemHit(item.name) === true ? 'outline: 3px solid #22c55e;' : ''"
                     >
-                        <!-- 未保存提示条 -->
-                        <div 
-                            x-show="isItemModified(index) || isItemNew(index)"
-                            class="bg-amber-400 text-amber-900 text-xs font-medium px-3 py-1 text-center rounded-t-lg"
-                            x-text="isItemNew(index) ? '新增' : '未保存'"
-                        ></div>
-                        <div class="p-4 bg-white rounded-b-lg">
-                            {% include 'components/item_card.html' %}
+                        <!-- 卡片头 -->
+                        <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-100 min-w-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span
+                                        class="font-medium text-sm truncate min-w-0 flex-1"
+                                        :class="!item.name || !item.name.trim() ? 'text-red-500 italic' : (item.enabled ? 'text-gray-800' : 'text-gray-400 line-through')"
+                                        x-text="item.name && item.name.trim() ? item.name : '(未命名)'"
+                                    ></span>
+                                    <template x-if="isItemNew(index)">
+                                        <span class="text-[10px] leading-none px-1 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0">新</span>
+                                    </template>
+                                    <template x-if="!isItemNew(index) && isItemModified(index)">
+                                        <span class="text-[10px] leading-none px-1 py-0.5 bg-amber-100 text-amber-800 rounded flex-shrink-0">改</span>
+                                    </template>
+                                    <template x-if="isItemHit(item.name) === true">
+                                        <span class="text-[10px] leading-none px-1 py-0.5 bg-emerald-100 text-emerald-700 rounded flex-shrink-0">中</span>
+                                    </template>
+                                </div>
+                                <div class="text-xs text-gray-500 truncate mt-0.5">
+                                    <template x-if="item.description">
+                                        <span x-text="item.description"></span>
+                                    </template>
+                                    <template x-if="!item.description">
+                                        <span class="text-gray-400 italic">无描述</span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- 启用开关（不冒泡，避免打开抽屉） -->
+                            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0" @click.stop>
+                                <input
+                                    type="checkbox"
+                                    x-model="item.enabled"
+                                    @change="hasUnsavedChanges = true"
+                                    class="sr-only peer"
+                                >
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+
+                            <!-- 删除（不冒泡） -->
+                            <button
+                                @click.stop="removeItem(index)"
+                                class="text-gray-300 hover:text-red-500 flex-shrink-0 p-1"
+                                title="删除"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- 摘要 -->
+                        <div class="px-3 py-2 text-xs space-y-1.5 min-w-0">
+                            <div class="flex items-baseline gap-2 min-w-0">
+                                <span class="text-gray-500 flex-shrink-0">配置值</span>
+                                <template x-if="item.value">
+                                    <span class="font-mono text-gray-700 truncate min-w-0 flex-1" x-text="String(item.value).replace(/\s+/g, ' ').slice(0, 100)"></span>
+                                </template>
+                                <template x-if="!item.value">
+                                    <span class="text-gray-400">—</span>
+                                </template>
+                            </div>
+                            <div class="flex items-baseline gap-2 min-w-0">
+                                <span class="text-gray-500 flex-shrink-0">条件</span>
+                                <template x-if="conditionCount(item) > 0">
+                                    <span class="text-gray-700 truncate min-w-0 flex-1" x-text="conditionCount(item) + ' 个 · ' + (item.condition_groups || []).length + ' 组'"></span>
+                                </template>
+                                <template x-if="conditionCount(item) === 0">
+                                    <span class="text-gray-400">无</span>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -305,6 +411,45 @@
         </div>
     </div>
     
+    <!-- 编辑抽屉：从右侧滑出 -->
+    <!-- 遮罩 -->
+    <div
+        x-show="editingItemIndex !== null"
+        x-cloak
+        @click="closeEditor()"
+        class="fixed inset-0 bg-black/40 z-40"
+        x-transition.opacity.duration.150ms
+        @keydown.escape.window="closeEditor()"
+    ></div>
+    <!-- 抽屉本体（始终在 DOM，靠 transform 滑入滑出） -->
+    <div
+        x-cloak
+        style="width: min(100%, 480px); box-shadow: -8px 0 24px -4px rgba(0,0,0,0.18);"
+        class="fixed top-0 right-0 bottom-0 bg-white border-l border-gray-300 z-50 flex flex-col transform transition-transform duration-200 ease-out"
+        :class="editingItemIndex !== null ? 'translate-x-0' : 'translate-x-full'"
+    >
+        <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <div class="min-w-0 flex-1 mr-3">
+                <h3 class="text-base font-semibold truncate" x-text="editingItemIndex !== null && items[editingItemIndex] && items[editingItemIndex].name ? items[editingItemIndex].name : '编辑 Item'"></h3>
+            </div>
+            <button @click="closeEditor()" class="text-gray-400 hover:text-gray-700 flex-shrink-0 p-1" title="关闭">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+            <template x-if="editingItemIndex !== null && items[editingItemIndex]">
+                <div x-data="{
+                    get item() { return items[editingItemIndex]; },
+                    get index() { return editingItemIndex; }
+                }">
+                    {% include 'components/item_card.html' %}
+                </div>
+            </template>
+        </div>
+    </div>
+
     <!-- 新建项目模态框 -->
     <div x-show="showNewProjectModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-96" @click.away="showNewProjectModal = false">
@@ -340,9 +485,13 @@ function appState() {
         newProjectName: '',
         projects: [],
         snapshotRemark: '',
+        // 当前在抽屉里编辑的 item 索引（null = 关闭）
+        editingItemIndex: null,
         // 移动端侧边栏状态
         showLeftSidebar: false,
         showRightSidebar: false,
+        // 桌面端左侧栏折叠
+        leftSidebarCollapsed: false,
         // 调试相关
         debugUserId: '',
         debugChatId: '',
@@ -378,6 +527,7 @@ function appState() {
             this.items = JSON.parse(JSON.stringify(project.items || []));
             this.originalItems = JSON.parse(JSON.stringify(project.items || []));
             this.hasUnsavedChanges = false;
+            this.editingItemIndex = null; // 切换项目时关闭抽屉
             this.debugResults = {}; // 清空调试结果
             this.loadSnapshots();
         },
@@ -490,7 +640,44 @@ function appState() {
                 value: '',
                 conditions: []
             });
+            // 新增的 item 自动打开抽屉
+            this.editingItemIndex = this.items.length - 1;
             this.hasUnsavedChanges = true;
+        },
+
+        openEditor(index) {
+            this.editingItemIndex = index;
+        },
+
+        closeEditor() {
+            this.editingItemIndex = null;
+        },
+
+        removeItem(index) {
+            if (!confirm('确定删除此 Item？')) return;
+            this.items.splice(index, 1);
+            // 如果正在编辑的就是这个，关闭抽屉；如果在它之后，索引向前移
+            if (this.editingItemIndex === index) {
+                this.editingItemIndex = null;
+            } else if (this.editingItemIndex !== null && this.editingItemIndex > index) {
+                this.editingItemIndex -= 1;
+            }
+            this.hasUnsavedChanges = true;
+        },
+
+        conditionCount(item) {
+            if (item.condition_groups && item.condition_groups.length > 0) {
+                return item.condition_groups.reduce((sum, g) => sum + (g.conditions || []).length, 0);
+            }
+            return (item.conditions || []).length;
+        },
+
+        modifiedCount() {
+            let n = 0;
+            for (let i = 0; i < this.items.length; i++) {
+                if (this.isItemNew(i) || this.isItemModified(i)) n++;
+            }
+            return n;
         },
         
         isValidKeyFormat(name) {

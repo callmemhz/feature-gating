@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 /* 自定义样式 */
-[x-cloak] { 
-  display: none !important; 
+[x-cloak] {
+  display: none !important;
+}
+
+/* 表单控件不再用 cols=20 / size=20 的默认 min-width 把父容器撑大 */
+input, select, textarea {
+  min-width: 0;
 }
 
 /* 移动端安全区域支持 (iPhone 底部) */

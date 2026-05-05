@@ -1,13 +1,13 @@
-<!-- Item 卡片组件 -->
-<div class="space-y-3">
+<!-- Item 卡片：编辑表单（在展开态使用） -->
+<div class="space-y-3 min-w-0">
     <!-- Key 名称 -->
     <div>
         <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-medium text-gray-700">Key <span class="text-red-500">*</span></label>
-            <span class="text-xs text-gray-400">大小写不敏感</span>
+            <span class="text-[10px] text-gray-400">大小写不敏感</span>
         </div>
-        <input 
-            type="text" 
+        <input
+            type="text"
             x-model="item.name"
             @input="hasUnsavedChanges = true"
             :class="{
@@ -27,11 +27,11 @@
             <p class="text-red-500 text-xs mt-1">⚠️ Key 重复</p>
         </template>
     </div>
-    
+
     <!-- 描述 -->
     <div>
         <label class="block text-xs font-medium text-gray-700 mb-1">描述</label>
-        <textarea 
+        <textarea
             x-model="item.description"
             @input="hasUnsavedChanges = true"
             rows="2"
@@ -39,7 +39,7 @@
             placeholder="功能描述"
         ></textarea>
     </div>
-    
+
     <!-- 配置值 -->
     <div x-init="if (item.value === undefined) item.value = ''" x-data="{
         looksLikeJson(v) {
@@ -68,7 +68,7 @@
         },
         autoSize(el) {
             el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 360) + 'px';
+            el.style.height = Math.max(120, Math.min(el.scrollHeight, 320)) + 'px';
         }
     }">
         <div class="flex flex-wrap items-center justify-between gap-y-1 mb-1">
@@ -97,45 +97,30 @@
             x-model="item.value"
             x-init="$nextTick(() => autoSize($el))"
             @input="hasUnsavedChanges = true; autoSize($event.target)"
-            rows="2"
+            rows="5"
             spellcheck="false"
-            class="w-full px-2 py-1 text-sm border border-gray-300 rounded font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+            style="min-height: 120px; max-height: 320px"
+            class="w-full px-2 py-2 text-sm border border-gray-300 rounded font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
             placeholder='如: 100 或 {"limit": 5}'
         ></textarea>
-        <p class="text-xs text-gray-400 mt-1">通过 /api/fg/get 获取，支持任意字符串格式（多行 JSON 可点"格式化"）</p>
+        <p class="text-[10px] text-gray-400 mt-1">通过 /api/fg/get 获取，多行 JSON 可点"格式化"</p>
     </div>
-    
-    <!-- Enable/Disable 开关 -->
-    <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-700">启用状态</span>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input 
-                type="checkbox" 
-                x-model="item.enabled"
-                @change="hasUnsavedChanges = true"
-                class="sr-only peer"
-            >
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-        </label>
-    </div>
-    
+
     <!-- 条件组 -->
     <div x-init="if (!item.condition_groups) item.condition_groups = []">
         <div class="flex justify-between items-center mb-2">
             <label class="text-xs font-medium text-gray-700">条件组 <span class="text-gray-400 font-normal">(组间 OR)</span></label>
-            <button 
+            <button
                 @click="item.condition_groups.push({logic: 'and', conditions: []}); hasUnsavedChanges = true"
                 class="text-blue-600 text-xs hover:text-blue-700"
             >
                 + 添加组
             </button>
         </div>
-        
-        <!-- 条件组列表 -->
+
         <div class="space-y-2">
             <template x-for="(group, groupIdx) in item.condition_groups" :key="groupIdx">
                 <div>
-                    <!-- OR 分隔符（第二个组开始显示） -->
                     <template x-if="groupIdx > 0">
                         <div class="flex items-center my-3">
                             <div class="flex-1 border-t border-dashed border-gray-300"></div>
@@ -143,19 +128,17 @@
                             <div class="flex-1 border-t border-dashed border-gray-300"></div>
                         </div>
                     </template>
-                    
-                    <!-- 条件组卡片 -->
+
                     <div class="pl-3 border-l-2 border-blue-400">
-                        <!-- 组头部：逻辑切换 + 删除 -->
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center space-x-2">
                                 <div class="flex items-center bg-gray-100 rounded text-xs overflow-hidden">
-                                    <button 
+                                    <button
                                         @click="group.logic = 'and'; hasUnsavedChanges = true"
                                         :class="group.logic === 'and' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:bg-gray-200'"
                                         class="px-2 py-1 transition-colors font-medium"
                                     >AND</button>
-                                    <button 
+                                    <button
                                         @click="group.logic = 'or'; hasUnsavedChanges = true"
                                         :class="group.logic === 'or' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:bg-gray-200'"
                                         class="px-2 py-1 transition-colors font-medium"
@@ -163,25 +146,18 @@
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <!-- 添加条件按钮 -->
-                                <div class="relative" x-data="{showMenu: false, menuStyle: ''}" @keydown.escape="showMenu = false">
-                                    <button 
-                                        @click="
-                                            const rect = $el.getBoundingClientRect();
-                                            menuStyle = 'top:' + (rect.bottom + 4) + 'px;left:' + (rect.right - 160) + 'px;';
-                                            showMenu = !showMenu;
-                                        "
+                                <div class="relative" x-data="{showMenu: false}" @keydown.escape="showMenu = false">
+                                    <button
+                                        @click="showMenu = !showMenu"
                                         class="text-blue-500 text-xs hover:text-blue-600 font-medium"
                                     >
                                         + 条件
                                     </button>
-                                    <div 
-                                        x-show="showMenu" 
+                                    <div
+                                        x-show="showMenu"
                                         @click.away="showMenu = false"
                                         x-cloak
-                                        :style="menuStyle"
-                                        class="fixed w-40 bg-white border border-gray-200 rounded-lg shadow-xl text-xs overflow-hidden"
-                                        style="z-index: 9999;"
+                                        class="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-xl text-xs overflow-hidden z-50"
                                     >
                                         <button @click="group.conditions.push({field: 'user_id', operator: '%', value: 100, comparator: '<', target: 10}); hasUnsavedChanges = true; showMenu = false" class="block w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700">哈希灰度</button>
                                         <button @click="group.conditions.push({field: 'user_id', operator: '==', value: ''}); hasUnsavedChanges = true; showMenu = false" class="block w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700">直接相等 ==</button>
@@ -190,7 +166,6 @@
                                         <button @click="group.conditions.push({field: 'user_id', operator: 'not in', value: ''}); hasUnsavedChanges = true; showMenu = false" class="block w-full text-left px-3 py-2 hover:bg-blue-50 text-gray-700">黑名单 not in</button>
                                     </div>
                                 </div>
-                                <!-- 删除组按钮 -->
                                 <button @click="if(confirm('确定删除此条件组？')) { item.condition_groups.splice(groupIdx, 1); hasUnsavedChanges = true; }" class="text-gray-400 hover:text-red-500 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -198,23 +173,20 @@
                                 </button>
                             </div>
                         </div>
-                        
-                        <!-- 组内条件列表 -->
+
                         <div class="space-y-1">
                             <template x-if="group.conditions.length === 0">
                                 <div class="text-xs text-gray-400 py-2">点击"+ 条件"添加规则</div>
                             </template>
                             <template x-for="(cond, condIdx) in group.conditions" :key="condIdx">
                                 <div>
-                                    <!-- AND/OR 分隔符（第二个条件开始显示） -->
                                     <template x-if="condIdx > 0">
                                         <div class="flex items-center my-1">
                                             <span class="text-xs text-gray-400 font-medium" x-text="group.logic.toUpperCase()"></span>
                                         </div>
                                     </template>
-                                    
+
                                     <div class="p-2 bg-gray-50 rounded-lg text-xs space-y-1">
-                                        <!-- 字段选择和删除按钮 -->
                                         <div class="flex items-center space-x-1">
                                             <select x-model="cond.field" @change="hasUnsavedChanges = true" class="flex-1 px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:border-blue-400 focus:outline-none">
                                                 <option value="user_id">user_id</option>
@@ -227,8 +199,7 @@
                                                 </svg>
                                             </button>
                                         </div>
-                                        
-                                        <!-- 操作符选择 -->
+
                                         <div>
                                             <select x-model="cond.operator" @change="hasUnsavedChanges = true" class="w-full px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:border-blue-400 focus:outline-none">
                                                 <optgroup label="哈希灰度">
@@ -245,8 +216,7 @@
                                                 </optgroup>
                                             </select>
                                         </div>
-                                        
-                                        <!-- 哈希运算类型：显示 4 个输入框 -->
+
                                         <template x-if="['%', '/', '//', '*'].includes(cond.operator)">
                                             <div>
                                                 <div class="grid grid-cols-3 gap-1">
@@ -266,15 +236,14 @@
                                                 </div>
                                             </div>
                                         </template>
-                                        
-                                        <!-- 直接比较类型：显示一个值输入框 -->
+
                                         <template x-if="['==', '!='].includes(cond.operator)">
                                             <div>
-                                                <input 
-                                                    type="text" 
-                                                    x-model="cond.value" 
-                                                    @input="hasUnsavedChanges = true" 
-                                                    class="w-full px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:border-blue-400 focus:outline-none" 
+                                                <input
+                                                    type="text"
+                                                    x-model="cond.value"
+                                                    @input="hasUnsavedChanges = true"
+                                                    class="w-full px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:border-blue-400 focus:outline-none"
                                                     placeholder="例如：uid_8555"
                                                 >
                                                 <div class="text-xs text-gray-400 mt-1 font-mono">
@@ -282,15 +251,14 @@
                                                 </div>
                                             </div>
                                         </template>
-                                        
-                                        <!-- 白名单/黑名单类型：显示文本区域 -->
+
                                         <template x-if="['in', 'not in'].includes(cond.operator)">
                                             <div>
-                                                <textarea 
-                                                    x-model="cond.value" 
-                                                    @input="hasUnsavedChanges = true" 
+                                                <textarea
+                                                    x-model="cond.value"
+                                                    @input="hasUnsavedChanges = true"
                                                     rows="3"
-                                                    class="w-full px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono focus:border-blue-400 focus:outline-none" 
+                                                    class="w-full px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono focus:border-blue-400 focus:outline-none"
                                                     placeholder="每行一个ID，或用逗号分隔&#10;uid_1&#10;uid_2&#10;uid_3"
                                                 ></textarea>
                                                 <div class="text-xs text-gray-400 mt-1">
@@ -305,24 +273,22 @@
                     </div>
                 </div>
             </template>
-            
-            <!-- 空状态提示 -->
+
             <template x-if="item.condition_groups.length === 0">
                 <div class="text-xs text-gray-400 text-center py-3">
                     点击"+ 添加组"创建条件
                 </div>
             </template>
         </div>
-        
-        <!-- 旧版 conditions 兼容提示（如果有旧数据） -->
+
         <template x-if="item.conditions && item.conditions.length > 0 && (!item.condition_groups || item.condition_groups.length === 0)">
             <div class="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
                 <div class="flex items-start space-x-2">
                     <span class="text-yellow-600">⚠️</span>
                     <div>
                         <p class="text-yellow-700 font-medium">检测到旧版条件配置</p>
-                        <p class="text-yellow-600 mt-1">当前有 <span x-text="item.conditions.length"></span> 个旧版条件（AND 逻辑）。建议迁移到条件组以支持更灵活的 AND/OR 逻辑。</p>
-                        <button 
+                        <p class="text-yellow-600 mt-1">当前有 <span x-text="item.conditions.length"></span> 个旧版条件（AND 逻辑）。建议迁移到条件组。</p>
+                        <button
                             @click="item.condition_groups = [{logic: 'and', conditions: JSON.parse(JSON.stringify(item.conditions))}]; item.conditions = []; hasUnsavedChanges = true"
                             class="mt-2 px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700"
                         >
@@ -333,12 +299,4 @@
             </div>
         </template>
     </div>
-    
-    <!-- 删除按钮 -->
-    <button 
-        @click="if(confirm('确定删除此 Item？')) { items.splice(index, 1); hasUnsavedChanges = true; }"
-        class="w-full py-1 px-2 text-xs text-red-600 border border-red-600 rounded hover:bg-red-50"
-    >
-        删除此 Item
-    </button>
 </div>
