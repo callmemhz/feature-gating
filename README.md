@@ -193,13 +193,23 @@ curl -X POST "http://localhost:8000/api/fg/check" \
 # 读取某项目（含全部 items）
 curl "http://localhost:8000/api/projects" -H "X-API-Key: $FG_API_KEY"
 
-# 整体更新项目 items（PUT 为全量替换，先 GET 再改）
+# 推荐：PATCH 局部更新——只动点名的 key，其余 item 原样保留（脚本化首选，风险可控）
+curl -X PATCH "http://localhost:8000/api/projects/<project_id>/items" \
+  -H "X-API-Key: $FG_API_KEY" -H "Content-Type: application/json" \
+  -d '{
+    "upsert": [{"name": "concurrency.pools", "value": "{...}"}],
+    "delete": ["deprecated.flag"]
+  }'
+
+# PUT 全量替换整个 items（会覆盖所有 key，慎用；漏带 key 即丢失）
 curl -X PUT "http://localhost:8000/api/projects/<project_id>" \
   -H "X-API-Key: $FG_API_KEY" -H "Content-Type: application/json" \
   -d '{"items": [ ... ]}'
 ```
 
-`label:secret` 形式里的 label 会记入快照的 `updated_by`，便于审计。
+- `PATCH /api/projects/{id}/items`：`upsert` 按 key 替换或新增、`delete` 按 key 删除，二者至少给一个；其余 item 不动。
+- `PUT /api/projects/{id}`：全量替换，主要给 Web UI 用。
+- `label:secret` 形式里的 label 会记入快照的 `updated_by`，便于审计。
 
 ## 数据结构
 

@@ -35,8 +35,14 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    """更新项目"""
+    """更新项目（全量替换 items）"""
     items: List[Item]
+
+
+class ProjectItemsPatch(BaseModel):
+    """局部更新项目 items：upsert 指定 key（替换或新增），删除 delete 列出的 key，其余 item 不动。"""
+    upsert: List[Item] = []
+    delete: List[str] = []
 
 
 class ProjectResponse(BaseModel):
