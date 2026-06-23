@@ -114,6 +114,9 @@ JWT_SECRET_KEY=your-secret-key-here-change-in-production
 
 # 缓存配置
 CACHE_TTL_SECONDS=60
+
+# 机器调用 API Key（逗号分隔，每项 "secret" 或 "label:secret"；留空则关闭）
+API_KEYS=
 ```
 
 #### 5. 启动 MongoDB
@@ -180,6 +183,23 @@ curl -X POST "http://localhost:8000/api/fg/check" \
   "key": "new_chat_ui"
 }
 ```
+
+### 管理接口（API Key 鉴权）
+
+`/api/projects`、`/api/snapshots` 等管理接口默认用浏览器登录的 cookie 鉴权。
+配置 `API_KEYS` 后，机器调用可改带 `X-API-Key` 头（等同 admin），无需登录：
+
+```bash
+# 读取某项目（含全部 items）
+curl "http://localhost:8000/api/projects" -H "X-API-Key: $FG_API_KEY"
+
+# 整体更新项目 items（PUT 为全量替换，先 GET 再改）
+curl -X PUT "http://localhost:8000/api/projects/<project_id>" \
+  -H "X-API-Key: $FG_API_KEY" -H "Content-Type: application/json" \
+  -d '{"items": [ ... ]}'
+```
+
+`label:secret` 形式里的 label 会记入快照的 `updated_by`，便于审计。
 
 ## 数据结构
 

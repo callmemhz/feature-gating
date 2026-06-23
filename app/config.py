@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "admin"
     
+    # API Keys（机器调用：逗号分隔，每项为 "secret" 或 "label:secret"）
+    # 持有有效 key 的请求带 X-API-Key 头即可调所有需登录的接口（等同 admin）。
+    api_keys: str = ""
+
     # JWT
     jwt_secret_key: str = "your-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
