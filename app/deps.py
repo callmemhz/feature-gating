@@ -1,6 +1,7 @@
 """FastAPI 依赖注入"""
+import secrets
 from typing import Optional
-from fastapi import Depends, HTTPException, status, Cookie, Request
+from fastapi import Depends, HTTPException, status, Cookie, Header, Request
 from fastapi.templating import Jinja2Templates
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.database import get_database
@@ -27,11 +28,41 @@ async def get_db() -> AsyncIOMotorDatabase:
     return get_database()
 
 
+def _match_api_key(provided: Optional[str]) -> Optional[dict]:
+    """校验 X-API-Key。命中返回合成的 service 用户（admin），否则 None。
+
+    配置 API_KEYS 为逗号分隔，每项 "secret" 或 "label:secret"；label 仅用于审计
+    （快照 updated_by），不填默认为 "api"。比较用 compare_digest 防时序侧信道。
+    """
+    if not provided:
+        return None
+    raw = (get_settings().api_keys or "").strip()
+    if not raw:
+        return None
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if ":" in entry:
+            label, _, secret = entry.partition(":")
+            label = label.strip() or "api"
+        else:
+            label, secret = "api", entry
+        if secret and secrets.compare_digest(provided, secret):
+            return {"username": label, "role": "admin", "auth": "api_key"}
+    return None
+
+
 async def get_current_user(
     access_token: Optional[str] = Cookie(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> dict:
-    """获取当前登录用户"""
+    """获取当前登录用户（先认 API Key，再回落 cookie JWT）"""
+    api_user = _match_api_key(x_api_key)
+    if api_user:
+        return api_user
+
     if not access_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -77,9 +108,14 @@ async def get_current_admin(
 
 async def get_optional_user(
     access_token: Optional[str] = Cookie(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: AsyncIOMotorDatabase = Depends(get_db)
 ) -> Optional[dict]:
     """获取当前用户（可选，不强制登录）"""
+    api_user = _match_api_key(x_api_key)
+    if api_user:
+        return api_user
+
     if not access_token:
         return None
     

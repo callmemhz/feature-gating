@@ -114,6 +114,9 @@ JWT_SECRET_KEY=your-secret-key-here-change-in-production
 
 # 缓存配置
 CACHE_TTL_SECONDS=60
+
+# 机器调用 API Key（逗号分隔，每项 "secret" 或 "label:secret"；留空则关闭）
+API_KEYS=
 ```
 
 #### 5. 启动 MongoDB
@@ -180,6 +183,33 @@ curl -X POST "http://localhost:8000/api/fg/check" \
   "key": "new_chat_ui"
 }
 ```
+
+### 管理接口（API Key 鉴权）
+
+`/api/projects`、`/api/snapshots` 等管理接口默认用浏览器登录的 cookie 鉴权。
+配置 `API_KEYS` 后，机器调用可改带 `X-API-Key` 头（等同 admin），无需登录：
+
+```bash
+# 读取某项目（含全部 items）
+curl "http://localhost:8000/api/projects" -H "X-API-Key: $FG_API_KEY"
+
+# 推荐：PATCH 局部更新——只动点名的 key，其余 item 原样保留（脚本化首选，风险可控）
+curl -X PATCH "http://localhost:8000/api/projects/<project_id>/items" \
+  -H "X-API-Key: $FG_API_KEY" -H "Content-Type: application/json" \
+  -d '{
+    "upsert": [{"name": "concurrency.pools", "value": "{...}"}],
+    "delete": ["deprecated.flag"]
+  }'
+
+# PUT 全量替换整个 items（会覆盖所有 key，慎用；漏带 key 即丢失）
+curl -X PUT "http://localhost:8000/api/projects/<project_id>" \
+  -H "X-API-Key: $FG_API_KEY" -H "Content-Type: application/json" \
+  -d '{"items": [ ... ]}'
+```
+
+- `PATCH /api/projects/{id}/items`：`upsert` 按 key 替换或新增、`delete` 按 key 删除，二者至少给一个；其余 item 不动。
+- `PUT /api/projects/{id}`：全量替换，主要给 Web UI 用。
+- `label:secret` 形式里的 label 会记入快照的 `updated_by`，便于审计。
 
 ## 数据结构
 
