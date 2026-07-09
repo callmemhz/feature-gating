@@ -77,7 +77,7 @@ hash(field) operator value comparator target
 
 | 参数 | 说明 | 示例 |
 |------|------|------|
-| field | 业务字段 | user_id, chat_id |
+| field | 业务字段 | user_id, chat_id, email, org_id |
 | operator | 运算符 | %, /, //, * |
 | value | 运算值 | 10 |
 | comparator | 比较符 | >, <, >=, <=, ==, != |

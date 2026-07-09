@@ -250,6 +250,8 @@ curl -X PUT "http://localhost:8000/api/projects/<project_id>" \
 
 - `user_id`: UUID v4 格式的用户 ID
 - `chat_id`: 聊天 ID
+- `email`: 用户邮箱
+- `org_id`: 组织 ID
 
 ### 支持的运算符
 
