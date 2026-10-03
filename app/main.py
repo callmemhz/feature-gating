@@ -3,11 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from app.database import connect_to_mongo, close_mongo_connection, get_database
+from app.database import connect_to_db, close_db_connection, get_database
 from app.routers import auth, projects, snapshots, admin, fg, pages
 from app.services.auth import get_password_hash
 from app.config import get_settings
-from datetime import datetime
 
 settings = get_settings()
 
@@ -16,11 +15,11 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
-    await connect_to_mongo()
+    await connect_to_db()
     await init_admin_user()
     yield
     # 关闭时
-    await close_mongo_connection()
+    await close_db_connection()
 
 
 app = FastAPI(
@@ -50,18 +49,17 @@ async def init_admin_user():
     db = get_database()
     
     # 检查是否已有用户
-    user_count = await db.users.count_documents({})
+    user_count = await db.fetchval("SELECT count(*) FROM users")
     if user_count == 0:
-        # 创建初始管理员
-        admin_user = {
-            "username": settings.admin_username,
-            "hashed_password": get_password_hash(settings.admin_password),
-            "role": "admin",
-            "created_by": "system",
-            "created_at": datetime.utcnow()
-        }
-        await db.users.insert_one(admin_user)
-        print(f"创建初始管理员用户: {settings.admin_username}")
+        # 创建初始管理员（多副本同时启动时靠 username 唯一约束去重）
+        result = await db.execute(
+            """INSERT INTO users (username, hashed_password, role, created_by)
+               VALUES ($1, $2, 'admin', 'system') ON CONFLICT (username) DO NOTHING""",
+            settings.admin_username,
+            get_password_hash(settings.admin_password),
+        )
+        if result.endswith(" 1"):
+            print(f"创建初始管理员用户: {settings.admin_username}")
 
 
 @app.get("/health")

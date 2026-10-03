@@ -166,18 +166,25 @@
                     placeholder="chat_id"
                     class="flex-1 min-w-[80px] md:min-w-[100px] max-w-[150px] md:max-w-[200px] px-2 py-1 text-sm bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-400"
                 >
-                <input 
-                    type="text" 
+                <input
+                    type="text"
                     x-model="debugEmail"
                     @keyup.enter="runDebugCheck()"
                     placeholder="email"
                     class="hidden md:block flex-1 min-w-[100px] max-w-[200px] px-2 py-1 text-sm bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-400"
                 >
-                <button 
+                <input
+                    type="text"
+                    x-model="debugOrgId"
+                    @keyup.enter="runDebugCheck()"
+                    placeholder="org_id"
+                    class="hidden md:block flex-1 min-w-[100px] max-w-[200px] px-2 py-1 text-sm bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+                >
+                <button
                     @click="runDebugCheck()"
-                    :disabled="debugLoading || (!debugUserId && !debugChatId && !debugEmail)"
+                    :disabled="debugLoading || (!debugUserId && !debugChatId && !debugEmail && !debugOrgId)"
                     class="px-3 py-1 text-xs rounded shrink-0 transition"
-                    :class="(!debugLoading && (debugUserId || debugChatId || debugEmail)) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
+                    :class="(!debugLoading && (debugUserId || debugChatId || debugEmail || debugOrgId)) ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
                 >
                     <template x-if="debugLoading">
                         <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -193,7 +200,7 @@
                     </span>
                 </template>
                 <button 
-                    x-show="debugUserId || debugChatId || debugEmail || Object.keys(debugResults).length > 0"
+                    x-show="debugUserId || debugChatId || debugEmail || debugOrgId || Object.keys(debugResults).length > 0"
                     @click="clearDebug()"
                     class="text-xs text-gray-400 hover:text-gray-600 shrink-0"
                 >
@@ -496,6 +503,7 @@ function appState() {
         debugUserId: '',
         debugChatId: '',
         debugEmail: '',
+        debugOrgId: '',
         debugResults: {},
         debugLoading: false,
         
@@ -533,7 +541,7 @@ function appState() {
         },
         
         async runDebugCheck() {
-            if (!this.currentProject || (!this.debugUserId && !this.debugChatId && !this.debugEmail)) return;
+            if (!this.currentProject || (!this.debugUserId && !this.debugChatId && !this.debugEmail && !this.debugOrgId)) return;
             
             // 过滤有效的 items
             const validItems = this.items.filter(item => item.name && item.name.trim());
@@ -556,7 +564,8 @@ function appState() {
                         })),
                         user_id: this.debugUserId || null,
                         chat_id: this.debugChatId || null,
-                        email: this.debugEmail || null
+                        email: this.debugEmail || null,
+                        org_id: this.debugOrgId || null
                     })
                 });
                 
@@ -579,6 +588,7 @@ function appState() {
             this.debugUserId = '';
             this.debugChatId = '';
             this.debugEmail = '';
+            this.debugOrgId = '';
             this.debugResults = {};
         },
         

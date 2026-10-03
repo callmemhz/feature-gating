@@ -25,11 +25,17 @@ def hash_email(email: str) -> int:
     return hash_field(email)
 
 
+def hash_org_id(org_id: str) -> int:
+    """对 org_id 进行哈希"""
+    return hash_field(org_id)
+
+
 # 字段哈希映射
 FIELD_HASHERS = {
     "user_id": hash_user_id,
     "chat_id": hash_chat_id,
     "email": hash_email,
+    "org_id": hash_org_id,
 }
 
 

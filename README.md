@@ -21,7 +21,7 @@
 
 ### 后端
 - **FastAPI**: 现代化的 Python Web 框架
-- **MongoDB**: 文档型数据库，使用 Motor 异步驱动
+- **PostgreSQL**: 使用 asyncpg 异步驱动，启动时自动建表
 - **JWT**: 基于 Token 的认证系统
 - **PyYAML**: 配置快照生成
 
@@ -37,7 +37,7 @@
 最简单的启动方式，一条命令搞定：
 
 ```bash
-# 启动所有服务（MongoDB + 应用）
+# 启动所有服务（PostgreSQL + 应用）
 docker-compose up -d
 
 # 查看日志
@@ -62,7 +62,7 @@ docker-compose down
 #### 1. 环境要求
 
 - Python 3.10+
-- MongoDB 4.0+
+- PostgreSQL 13+
 - [uv](https://docs.astral.sh/uv/) - Python 包管理工具
 - pnpm (或 npm)
 
@@ -102,8 +102,8 @@ vim .env
 # 应用配置
 APP_TITLE=Feature Gating
 
-# MongoDB 配置
-MONGO_URL=mongodb://localhost:27017/wawa-fg
+# PostgreSQL 配置
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/fg
 
 # 初始管理员账户（首次启动时创建）
 ADMIN_USERNAME=admin
@@ -119,15 +119,17 @@ CACHE_TTL_SECONDS=60
 API_KEYS=
 ```
 
-#### 5. 启动 MongoDB
+#### 5. 启动 PostgreSQL
 
-使用 Docker Compose（仅启动 MongoDB）：
+使用 Docker Compose（仅启动 PostgreSQL）：
 
 ```bash
-docker-compose up -d mongodb
+docker-compose up -d postgres
 ```
 
-或者使用本地 MongoDB 服务。
+或者使用已有的 PostgreSQL 实例（库需先建好，表会在应用启动时自动创建）。
+
+从旧版 MongoDB 迁移数据见 [scripts/migrate_mongo_to_pg.py](scripts/migrate_mongo_to_pg.py)。
 
 #### 6. 运行应用
 
@@ -213,11 +215,11 @@ curl -X PUT "http://localhost:8000/api/projects/<project_id>" \
 
 ## 数据结构
 
-### 项目（嵌入式结构）
+### 项目（`projects` 表，items 存为 json）
 
 ```json
 {
-  "_id": "ObjectId",
+  "id": "1",
   "name": "main",
   "created_by": "admin",
   "created_at": "2025-12-01T00:00:00Z",
@@ -250,6 +252,8 @@ curl -X PUT "http://localhost:8000/api/projects/<project_id>" \
 
 - `user_id`: UUID v4 格式的用户 ID
 - `chat_id`: 聊天 ID
+- `email`: 用户邮箱
+- `org_id`: 组织 ID
 
 ### 支持的运算符
 
@@ -274,9 +278,8 @@ wawa-fg/
 ├── app/
 │   ├── main.py             # FastAPI 应用入口
 │   ├── config.py           # 配置管理
-│   ├── database.py         # MongoDB 连接
+│   ├── database.py         # PostgreSQL 连接池与建表
 │   ├── deps.py             # 依赖注入
-│   ├── models/             # 数据模型
 │   ├── schemas/            # Pydantic Schemas
 │   ├── routers/            # API 路由
 │   ├── services/           # 业务逻辑

@@ -1,6 +1,6 @@
 """Feature Gate 查询接口"""
 from fastapi import APIRouter, Depends, HTTPException, status
-from motor.motor_asyncio import AsyncIOMotorDatabase
+import asyncpg
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from app.deps import get_db
@@ -18,6 +18,7 @@ class FGCheckRequest(BaseModel):
     user_id: Optional[str] = None
     chat_id: Optional[str] = None
     email: Optional[str] = None
+    org_id: Optional[str] = None
 
 
 class FGCheckResponse(BaseModel):
@@ -37,6 +38,7 @@ class FGDebugRequest(BaseModel):
     user_id: Optional[str] = None
     chat_id: Optional[str] = None
     email: Optional[str] = None
+    org_id: Optional[str] = None
 
 
 class FGGetRequest(BaseModel):
@@ -64,6 +66,8 @@ async def debug_feature_gate(request: FGDebugRequest):
         context["chat_id"] = request.chat_id
     if request.email:
         context["email"] = request.email
+    if request.org_id:
+        context["org_id"] = request.org_id
     
     for item in request.items:
         if not item.name or not item.name.strip():
@@ -99,16 +103,17 @@ async def check_feature_gate(
     user_id: Optional[str] = None,
     chat_id: Optional[str] = None,
     email: Optional[str] = None,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    org_id: Optional[str] = None,
+    db: asyncpg.Pool = Depends(get_db)
 ):
     """检查功能是否对特定用户生效（GET 请求）"""
-    return await _check_feature_gate(project, key, user_id, chat_id, email, db)
+    return await _check_feature_gate(project, key, user_id, chat_id, email, org_id, db)
 
 
 @router.post("/check", response_model=FGCheckResponse)
 async def check_feature_gate_post(
     request: FGCheckRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: asyncpg.Pool = Depends(get_db)
 ):
     """检查功能是否对特定用户生效（POST 请求）"""
     return await _check_feature_gate(
@@ -117,6 +122,7 @@ async def check_feature_gate_post(
         request.user_id,
         request.chat_id,
         request.email,
+        request.org_id,
         db
     )
 
@@ -127,7 +133,8 @@ async def _check_feature_gate(
     user_id: Optional[str],
     chat_id: Optional[str],
     email: Optional[str],
-    db: AsyncIOMotorDatabase
+    org_id: Optional[str],
+    db: asyncpg.Pool
 ) -> FGCheckResponse:
     """Feature Gate 检查核心逻辑"""
     
@@ -137,7 +144,7 @@ async def _check_feature_gate(
     if cached_item is None:
         # 2. 缓存未命中，从数据库查询
         # 首先找到项目
-        project_doc = await db.projects.find_one({"name": project})
+        project_doc = await db.fetchrow("SELECT items FROM projects WHERE name = $1", project)
         if not project_doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -145,7 +152,7 @@ async def _check_feature_gate(
             )
         
         # 在项目的 items 数组中查找（大小写不敏感）
-        items = project_doc.get("items", [])
+        items = project_doc["items"] or []
         key_lower = key.lower()
         item = next((i for i in items if i.get("name", "").lower() == key_lower), None)
         
@@ -176,6 +183,8 @@ async def _check_feature_gate(
         context["chat_id"] = chat_id
     if email:
         context["email"] = email
+    if org_id:
+        context["org_id"] = org_id
     
     # 5. 计算条件
     condition_groups = cached_item.get("condition_groups", [])
@@ -199,7 +208,7 @@ async def _check_feature_gate(
 async def get_feature_value(
     project: str,
     key: str,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: asyncpg.Pool = Depends(get_db)
 ):
     """获取功能配置值（GET 请求）"""
     return await _get_feature_value(project, key, db)
@@ -208,7 +217,7 @@ async def get_feature_value(
 @router.post("/get", response_model=FGGetResponse)
 async def get_feature_value_post(
     request: FGGetRequest,
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: asyncpg.Pool = Depends(get_db)
 ):
     """获取功能配置值（POST 请求）"""
     return await _get_feature_value(request.project, request.key, db)
@@ -217,7 +226,7 @@ async def get_feature_value_post(
 async def _get_feature_value(
     project: str,
     key: str,
-    db: AsyncIOMotorDatabase
+    db: asyncpg.Pool
 ) -> FGGetResponse:
     """获取功能配置值核心逻辑"""
     
@@ -226,7 +235,7 @@ async def _get_feature_value(
     
     if cached_item is None:
         # 2. 缓存未命中，从数据库查询
-        project_doc = await db.projects.find_one({"name": project})
+        project_doc = await db.fetchrow("SELECT items FROM projects WHERE name = $1", project)
         if not project_doc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -234,7 +243,7 @@ async def _get_feature_value(
             )
         
         # 在项目的 items 数组中查找（大小写不敏感）
-        items = project_doc.get("items", [])
+        items = project_doc["items"] or []
         key_lower = key.lower()
         item = next((i for i in items if i.get("name", "").lower() == key_lower), None)
         
