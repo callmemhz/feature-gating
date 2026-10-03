@@ -3,7 +3,7 @@ import secrets
 from typing import Optional
 from fastapi import Depends, HTTPException, status, Cookie, Header, Request
 from fastapi.templating import Jinja2Templates
-from motor.motor_asyncio import AsyncIOMotorDatabase
+import asyncpg
 from app.database import get_database
 from app.services.auth import decode_access_token
 from app.config import get_settings
@@ -23,9 +23,15 @@ def get_template_context():
 templates.env.globals.update(get_template_context())
 
 
-async def get_db() -> AsyncIOMotorDatabase:
+async def get_db() -> asyncpg.Pool:
     """获取数据库连接"""
     return get_database()
+
+
+async def find_user_by_username(db: asyncpg.Pool, username: str) -> Optional[dict]:
+    """按用户名查用户，返回 dict 或 None"""
+    row = await db.fetchrow("SELECT * FROM users WHERE username = $1", username)
+    return dict(row) if row else None
 
 
 def _match_api_key(provided: Optional[str]) -> Optional[dict]:
@@ -56,7 +62,7 @@ def _match_api_key(provided: Optional[str]) -> Optional[dict]:
 async def get_current_user(
     access_token: Optional[str] = Cookie(None),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: asyncpg.Pool = Depends(get_db)
 ) -> dict:
     """获取当前登录用户（先认 API Key，再回落 cookie JWT）"""
     api_user = _match_api_key(x_api_key)
@@ -84,7 +90,7 @@ async def get_current_user(
         )
     
     # 从数据库获取用户信息
-    user = await db.users.find_one({"username": username})
+    user = await find_user_by_username(db, username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -109,7 +115,7 @@ async def get_current_admin(
 async def get_optional_user(
     access_token: Optional[str] = Cookie(None),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: asyncpg.Pool = Depends(get_db)
 ) -> Optional[dict]:
     """获取当前用户（可选，不强制登录）"""
     api_user = _match_api_key(x_api_key)
@@ -127,8 +133,7 @@ async def get_optional_user(
     if not username:
         return None
     
-    user = await db.users.find_one({"username": username})
-    return user
+    return await find_user_by_username(db, username)
 
 
 def flash(request: Request, message: str, category: str = "info"):

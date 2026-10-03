@@ -1,8 +1,8 @@
 """认证路由"""
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Form, Request
 from fastapi.responses import RedirectResponse
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.deps import get_db, get_current_user, flash
+import asyncpg
+from app.deps import get_db, get_current_user, flash, find_user_by_username
 from app.schemas.user import UserLogin, Token, UserResponse
 from app.services.auth import verify_password, create_access_token
 
@@ -14,11 +14,11 @@ async def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
-    db: AsyncIOMotorDatabase = Depends(get_db)
+    db: asyncpg.Pool = Depends(get_db)
 ):
     """用户登录"""
     # 查找用户
-    user = await db.users.find_one({"username": username})
+    user = await find_user_by_username(db, username)
     if not user:
         flash(request, "用户名或密码错误", "error")
         return RedirectResponse(url="/login", status_code=303)
@@ -56,9 +56,9 @@ async def logout(response: Response):
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """获取当前用户信息"""
     return {
-        "id": str(current_user["_id"]),
+        "id": str(current_user.get("id", "")),
         "username": current_user["username"],
         "role": current_user["role"],
-        "created_by": current_user["created_by"]
+        "created_by": current_user.get("created_by", "system")
     }
 

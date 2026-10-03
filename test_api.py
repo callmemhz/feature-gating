@@ -26,7 +26,7 @@ async def test_basic_functionality():
     print("\n✓ 测试 2: 检查配置...")
     try:
         settings = get_settings()
-        print(f"  - MongoDB URL: {settings.mongo_url}")
+        print(f"  - Database URL: {settings.database_url}")
         print(f"  - Admin Username: {settings.admin_username}")
         print(f"  - Cache TTL: {settings.cache_ttl_seconds}s")
         print("  ✓ 配置加载成功")

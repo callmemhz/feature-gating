@@ -13,8 +13,9 @@ class Settings(BaseSettings):
     # App
     app_title: str = "Feature Gating"
     
-    # MongoDB
-    mongo_url: str = "mongodb://localhost:27017/wawa-fg"
+    # PostgreSQL
+    database_url: str = "postgresql://postgres:postgres@localhost:5432/fg"
+    database_pool_size: int = 10
     
     # Admin User
     admin_username: str = "admin"

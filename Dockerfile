@@ -1,8 +1,8 @@
 # 多阶段构建 - 前端构建阶段
 FROM node:20-alpine AS frontend-builder
 
-# 安装 pnpm
-RUN npm install -g pnpm
+# 安装 pnpm（锁定大版本：新版 pnpm 遇到被忽略的依赖构建脚本会直接报错退出）
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 

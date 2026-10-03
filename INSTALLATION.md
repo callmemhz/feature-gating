@@ -31,7 +31,7 @@ pnpm install
 pnpm run build
 ```
 
-### 4. 启动 MongoDB
+### 4. 启动 PostgreSQL
 
 #### 方式一：使用 Docker Compose（推荐）
 
@@ -39,9 +39,9 @@ pnpm run build
 docker-compose up -d
 ```
 
-#### 方式二：使用本地 MongoDB
+#### 方式二：使用已有的 PostgreSQL
 
-确保 MongoDB 服务已启动，并在 `.env` 文件中配置正确的连接地址。
+先建好数据库（如 `createdb fg`），并在 `.env` 文件中配置 `DATABASE_URL`。表会在应用启动时自动创建。
 
 ### 5. 配置环境变量
 
@@ -50,7 +50,7 @@ docker-compose up -d
 ```bash
 # 创建 .env 文件
 cat > .env << 'EOF'
-MONGO_URL=mongodb://localhost:27017/wawa-fg
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/fg
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 JWT_SECRET_KEY=$(openssl rand -hex 32 | head -c 64)
@@ -126,11 +126,11 @@ Feature Gating 系统功能测试
 
 ## 常见问题
 
-### Q: MongoDB 连接失败
+### Q: PostgreSQL 连接失败
 
 **A:** 检查以下几点：
-1. MongoDB 服务是否已启动
-2. `.env` 文件中的 `MONGO_URL` 是否正确
+1. PostgreSQL 服务是否已启动、数据库是否已创建
+2. `.env` 文件中的 `DATABASE_URL` 是否正确
 3. 防火墙是否允许连接
 
 ### Q: 依赖安装失败
@@ -155,7 +155,7 @@ uvicorn app.main:app --reload --port 8001
 
 ### Q: 无法创建管理员用户
 
-**A:** 检查 MongoDB 是否正常运行，并查看应用启动日志。
+**A:** 检查 PostgreSQL 是否正常运行，并查看应用启动日志。
 
 ## 开发环境配置
 

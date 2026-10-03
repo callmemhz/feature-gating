@@ -317,7 +317,7 @@ if (await checkFeature('main', 'new_chat_ui', userId)) {
 1. **修改默认密码**：首次登录后立即修改管理员密码
 2. **最小权限原则**：只给必要的用户管理员权限
 3. **保护 API**：在生产环境中考虑添加 API Key 认证
-4. **定期备份**：定期备份 MongoDB 数据
+4. **定期备份**：定期备份 PostgreSQL 数据（`pg_dump`）
 
 ### 4. 性能优化
 
@@ -359,7 +359,7 @@ print(f"灰度比例: {count/10000*100}%")  # 应接近 20%
 
 **检查**：
 1. 用户名密码是否正确
-2. MongoDB 是否正常运行
+2. PostgreSQL 是否正常运行
 3. 查看应用日志
 
 ## 监控和日志
@@ -374,16 +374,16 @@ print(f"灰度比例: {count/10000*100}%")  # 应接近 20%
 sudo journalctl -u wawa-fg -f
 ```
 
-### 监控 MongoDB
+### 监控 PostgreSQL
 
 ```bash
-# 连接到 MongoDB
-mongosh wawa-fg
+# 连接到数据库
+psql "$DATABASE_URL"
 
-# 查看集合统计
-db.items.countDocuments()
-db.users.countDocuments()
-db.snapshots.countDocuments()
+# 查看表统计
+SELECT count(*) FROM projects;
+SELECT count(*) FROM users;
+SELECT count(*) FROM snapshots;
 ```
 
 ### 性能监控
@@ -391,6 +391,6 @@ db.snapshots.countDocuments()
 建议监控以下指标：
 - API 响应时间
 - 缓存命中率
-- MongoDB 查询性能
+- PostgreSQL 查询性能
 - 并发请求数
 

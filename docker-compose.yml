@@ -1,18 +1,19 @@
 services:
-  # MongoDB 数据库
-  mongodb:
-    image: mongo:latest
-    container_name: wawa-fg-mongodb
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: wawa-fg-postgres
     restart: unless-stopped
     environment:
-      MONGO_INITDB_DATABASE: wawa-fg
+      POSTGRES_DB: fg
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/wawa-fg --quiet
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fg"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,8 +31,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # MongoDB 连接
-      MONGO_URL: mongodb://mongodb:27017/wawa-fg
+      # PostgreSQL 连接
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fg
       
       # 管理员账号（首次启动时创建）
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
@@ -51,7 +52,7 @@ services:
       # 应用配置
       APP_TITLE: ${APP_TITLE:-Feature Gating}
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -63,9 +64,7 @@ services:
       - wawa-network
 
 volumes:
-  mongodb_data:
-    driver: local
-  mongodb_config:
+  postgres_data:
     driver: local
 
 networks:
